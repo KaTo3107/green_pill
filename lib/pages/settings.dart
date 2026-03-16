@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:green_pill/models/settings_model.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -9,75 +10,76 @@ class SettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsModel>();
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        const Text('Darstellung', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 12),
-
-        SwitchListTile(
-          title: const Text('Dark Mode'),
-          subtitle: const Text('Bevorzugte Darstellung'),
-          value: settings.themeMode == ThemeMode.dark,
-          onChanged: (value) {
-            settings.setThemeMode(value ? ThemeMode.dark : ThemeMode.light);
-          },
-        ),
-
-        const SizedBox(height: 20),
-        const Text('Primärfarbe wählen', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 12),
-
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            _ColorChoice(
-              color: Colors.blue,
-              selected: settings.seedColor == Colors.blue,
-              onTap: () => settings.setSeedColor(Colors.blue),
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: const Text('Settings'),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          const Text('Darstellung', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+      
+          SwitchListTile(
+            title: Text('Dark Mode', style: TextStyle(color: Theme.of(context).textTheme.labelSmall?.color)),
+            subtitle: Text('Bevorzugte Darstellung', style: TextStyle(color: Theme.of(context).textTheme.labelSmall?.color)),
+            value: settings.themeMode == ThemeMode.dark,
+            onChanged: (value) {
+              settings.setThemeMode(value ? ThemeMode.dark : ThemeMode.light);
+            },
+          ),
+          ListTile(
+            title: Text('Aktuelle Primärfarbe', style: TextStyle(color: Theme.of(context).textTheme.labelSmall?.color)),
+            subtitle: Text('Farbe der App-Elemente', style: TextStyle(color: Theme.of(context).textTheme.labelSmall?.color)),
+            trailing: Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: settings.seedColor,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.black26),
+              ),
             ),
-            _ColorChoice(
-              color: Colors.green,
-              selected: settings.seedColor == Colors.green,
-              onTap: () => settings.setSeedColor(Colors.green),
-            ),
-            _ColorChoice(
-              color: Colors.pink,
-              selected: settings.seedColor == Colors.pink,
-              onTap: () => settings.setSeedColor(Colors.pink),
-            ),
-            _ColorChoice(
-              color: Colors.deepOrange,
-              selected: settings.seedColor == Colors.deepOrange,
-              onTap: () => settings.setSeedColor(Colors.deepOrange),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _ColorChoice extends StatelessWidget {
-  final Color color;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _ColorChoice({
-    required this.color,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: CircleAvatar(
-        backgroundColor: color,
-        radius: selected ? 26 : 22,
-        child: selected ? const Icon(Icons.check, color: Colors.white) : null,
+            onTap: () async {
+              Color? pickedColor = await showDialog<Color>(
+                context: context,
+                builder: (BuildContext context) {
+                  Color currentColor = settings.seedColor;  // Aktuelle Farbe als Startwert
+                  return AlertDialog(
+                    title: const Text('Farbe wählen'),
+                    content: SingleChildScrollView(
+                      child: ColorPicker(
+                        pickerColor: currentColor,
+                        onColorChanged: (color) {
+                          currentColor = color;
+                        },
+                        pickerAreaHeightPercent: 0.8,
+                      ),
+                    ),
+                    actions: <Widget>[
+                      TextButton(
+                        child: const Text('Abbrechen'),
+                        onPressed: () {
+                          Navigator.of(context).pop();  // Dialog schließen ohne Änderung
+                        },
+                      ),
+                      TextButton(
+                        child: const Text('Auswählen'),
+                        onPressed: () {
+                          Navigator.of(context).pop(currentColor);  // Farbe zurückgeben
+                        },
+                      ),
+                    ],
+                  );
+                },
+              );
+              if (pickedColor != null) {
+                settings.setSeedColor(pickedColor);  // Neue Farbe setzen
+              }
+            },
+          ),
+        ],
       ),
     );
   }

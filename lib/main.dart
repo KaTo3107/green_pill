@@ -50,7 +50,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
 
-  int _currentPageIndex = 0;
+  int _currentPageIndex = 0; // For bottom navigation at the Moment unused
 
   @override
   Widget build(BuildContext context) { 
@@ -58,15 +58,34 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              switch (value) {
+                case 'settings':
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsPage()));
+                  break;
+              }
+            },
+            itemBuilder: (BuildContext context) => [
+              const PopupMenuItem<String>(
+                value: 'settings',
+                child: Row(
+                  children: [
+                    Icon(Icons.settings),
+                    SizedBox(width: 8),
+                    Text('Settings'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       body: <Widget>[
-        /// Home page
         const ChatListPage(),
-
-        const SettingsPage(),
-
       ][_currentPageIndex],
-      bottomNavigationBar: NavigationBar(
+      /*bottomNavigationBar: NavigationBar(
         onDestinationSelected: (value) => {
           setState(() {
             _currentPageIndex = value;
@@ -83,7 +102,7 @@ class _MyHomePageState extends State<MyHomePage> {
             label: 'Settings',
           ),
         ],
-      ),
+      ),*/
     );
   }
 }

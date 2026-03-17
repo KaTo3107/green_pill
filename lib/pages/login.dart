@@ -11,6 +11,7 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
 
+  final TextEditingController _matrixServerUrlController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
@@ -27,6 +28,19 @@ class _LoginPageState extends State<LoginPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text('Login', style: TextStyle(fontSize: 24)),
+            SizedBox(height: 16),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 40),
+              child: TextField(
+                controller: _matrixServerUrlController,
+                decoration: InputDecoration(
+                  labelText: 'Matrix Server URL',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              ),
+            ),
             SizedBox(height: 16),
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 40),
@@ -58,7 +72,7 @@ class _LoginPageState extends State<LoginPage> {
             ElevatedButton(
               onPressed: () async {
                 try {
-                  await Provider.of<AuthModel>(context, listen: false).login(_usernameController.text, _passwordController.text);
+                  await Provider.of<AuthModel>(context, listen: false).login(_matrixServerUrlController.text, _usernameController.text, _passwordController.text);
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text(e.toString())),

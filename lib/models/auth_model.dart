@@ -7,7 +7,7 @@ class AuthModel extends ChangeNotifier{
   bool get isAuthenticated => isLoggedIn;
   String get token => authenticationToken;
 
-  Future<void> login(String username, String password) async {
+  Future<void> login(String matrixServerUrl, String username, String password) async {
     await Future.delayed(const Duration(seconds: 2));
 
     if (username == 'user' && password == 'password') {

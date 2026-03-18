@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:green_pill/pages/RoomAvatar.dart';
 import 'package:green_pill/pages/personalchat.dart';
+import 'package:green_pill/service/matrix_service.dart';
+import 'package:provider/provider.dart';
 
 class ChatListPage extends StatefulWidget {
   const ChatListPage({super.key});
@@ -17,34 +21,55 @@ class _ChatListPageState extends State<ChatListPage> {
 
   @override
   Widget build(BuildContext context) {
+    final matrix = context.watch<MatrixService>();
+    if (!matrix.isInitialized) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final rooms = matrix.rooms;//.where((room) => room.isDirectChat).toList();
+
+    // Empty State
+    if (rooms.isEmpty) {
+      return const Scaffold(
+        body: Center(child: Text('Keine Räume vorhanden')),
+      );
+    }
+
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: <Widget>[
-            Hero(
-              tag: 'ListTile-Hero',
-              child: Material(
-                child: ListTile(
-                  leading: const CircleAvatar(
-                    backgroundImage: NetworkImage('https://randomuser.me/api/portraits/women/68.jpg'),
-                    radius: 25,
-                  ),
-                  title: const Text('Alice Smith'),
-                  subtitle: const Text('Hey, how are you?'),
-                  tileColor: Colors.cyan,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const PersonalChat())
-                    );
-                  }
-                ),
-              ),
+      body: ListView.builder(
+        itemCount: rooms.length,
+        itemBuilder: (context, index) {
+          final room = rooms[index];
+          
+          var imageUrl = matrix.getRoomAvatarUrl(room);
+
+          return Material(
+            child: ListTile(
+              leading: RoomAvatar(room: room),
+              title: Text(room.getLocalizedDisplayname()),
+              subtitle: Text(room.lastEvent?.text ?? 'Keine Nachrichten'),
+              tileColor: Colors.cyan,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const PersonalChat())
+                );
+              },
+              trailing: room.notificationCount > 0
+                ? CircleAvatar(
+                    radius: 12,
+                    backgroundColor: Colors.red,
+                    child: Text(
+                      '${room.notificationCount}',
+                      style: const TextStyle(fontSize: 10, color: Colors.white),
+                    ),
+                  )
+                : null,
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

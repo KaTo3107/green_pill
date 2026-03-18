@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:green_pill/main.dart';
-import 'package:green_pill/models/auth_model.dart';
 import 'package:green_pill/models/settings_model.dart';
 import 'package:green_pill/pages/AuthWrapper.dart';
 import 'package:provider/provider.dart';
@@ -24,7 +23,6 @@ void main() {
             // je nachdem ob wir echte Daten simulieren wollen.
             return model;
           }),
-          ChangeNotifierProvider<AuthModel>(create: (_) => AuthModel()),
         ],
         child: const MyApp(), // Hier laden wir deine eigentliche App
       ),

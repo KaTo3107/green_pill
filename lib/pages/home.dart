@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:green_pill/models/auth_model.dart';
 import 'package:green_pill/models/menu_action.dart';
 import 'package:green_pill/pages/chatlist.dart';
 import 'package:green_pill/pages/settings.dart';
+import 'package:green_pill/service/matrix_service.dart';
 import 'package:provider/provider.dart';
 
 class HomePage extends StatefulWidget {
@@ -37,7 +37,7 @@ class _HomePageState extends State<HomePage> {
       label: 'Logout',
       icon: Icons.logout,
       onTap: (context) {
-        context.read<AuthModel>().logout();
+        context.read<MatrixService>().logout();
       },
       children: Row(
         children: [

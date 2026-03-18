@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:green_pill/models/auth_model.dart';
+import 'package:green_pill/service/matrix_service.dart';
+import 'package:matrix/matrix_api_lite/model/matrix_exception.dart';
 import 'package:provider/provider.dart';
 
 class LoginPage extends StatefulWidget {
@@ -71,11 +72,21 @@ class _LoginPageState extends State<LoginPage> {
             SizedBox(height: 24),
             ElevatedButton(
               onPressed: () async {
+                final scaffoldMessenger = ScaffoldMessenger.of(context);
+
                 try {
-                  await Provider.of<AuthModel>(context, listen: false).login(_matrixServerUrlController.text, _usernameController.text, _passwordController.text);
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(e.toString())),
+                  await Provider.of<MatrixService>(context, listen: false).login(
+                    homeserver: _matrixServerUrlController.text,
+                    username: _usernameController.text, 
+                    password: _passwordController.text
+                  );
+                } on MatrixException catch (e) {
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(content: Text(e.errorMessage)),
+                  );
+                }catch (e) {
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(content: Text('Verbindung fehlgeschlagen')),
                   );
 
                   print(e);

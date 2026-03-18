@@ -28,7 +28,7 @@ class _ChatListPageState extends State<ChatListPage> {
       );
     }
 
-    final rooms = matrix.rooms;//.where((room) => room.isDirectChat).toList();
+    final rooms = matrix.rooms.where((room) => room.isDirectChat).toList();
 
     // Empty State
     if (rooms.isEmpty) {

@@ -19,17 +19,15 @@ class MatrixService extends ChangeNotifier {
   Future<void> initialize() async {
     final dir = await getApplicationDocumentsDirectory();
 
+    final dbPath = p.join(dir.path, 'matrix.db');
+    final database = await MatrixSdkDatabase.init(
+      'Green Pill',
+      database: await sqflite.openDatabase(dbPath),
+    );
+
     client = Client(
       "Green Pill",
-       databaseBuilder: (clientName) async {
-        final dbPath = p.join(dir.path, '$clientName.db');
-        final db = MatrixSdkDatabase(
-          clientName.clientName,
-          database: await sqflite.openDatabase(dbPath),
-        );
-        await db.open();
-        return db;
-      },
+      database: database,
     );
 
     await client.init(

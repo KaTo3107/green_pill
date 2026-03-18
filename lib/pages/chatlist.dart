@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:green_pill/pages/RoomAvatar.dart';
 import 'package:green_pill/pages/personalchat.dart';
 import 'package:green_pill/service/matrix_service.dart';
@@ -42,8 +41,6 @@ class _ChatListPageState extends State<ChatListPage> {
         itemCount: rooms.length,
         itemBuilder: (context, index) {
           final room = rooms[index];
-          
-          var imageUrl = matrix.getRoomAvatarUrl(room);
 
           return Material(
             child: ListTile(

@@ -1,4 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_vodozemac/flutter_vodozemac.dart' as vod;
+import 'package:matrix/encryption/utils/bootstrap.dart';
 import 'package:matrix/encryption/utils/key_verification.dart';
 import 'package:matrix/matrix.dart';
 import 'package:path/path.dart' as p;
@@ -30,10 +33,10 @@ class MatrixService extends ChangeNotifier {
     client = Client(
       "Green Pill",
       database: database,
-      verificationMethods: {
-        KeyVerificationMethod.emoji,
-        KeyVerificationMethod.numbers,
-      },
+      nativeImplementations: NativeImplementationsIsolate(
+        compute,
+        vodozemacInit: () => vod.init(),
+      )
     );
 
     debugPrint('[Matrix] 🔍 Encryption vor init: ${client.encryption}');
@@ -130,16 +133,51 @@ class MatrixService extends ChangeNotifier {
     try {
       // Warte bis Encryption bereit ist
       await client.encryption?.keyManager.isCached();
-
-      debugPrint('[Matrix] Encryption ist bereit');
-
-      // Optional: Bootstrap Encryption (für Cross-Signing)
-      // Wird später für Device Verification wichtig
-      // await _bootstrapEncryption();
-
     } catch (e) {
       debugPrint('[Matrix] Encryption Setup Fehler: $e');
     }
   }
 
+  Future<void> bootstrapE2EE(Client client, String passphrase) async {
+    Bootstrap(
+      encryption: client.encryption!,
+      onUpdate: (Bootstrap b) async {
+        switch (b.state) {
+          case BootstrapState.askWipeSsss:
+            b.wipeSsss(true);
+            break;
+          case BootstrapState.askUseExistingSsss:
+            b.useExistingSsss(false);
+            break;
+          case BootstrapState.askNewSsss:
+            await b.newSsss(passphrase);
+            break;
+          case BootstrapState.askWipeCrossSigning:
+            await b.wipeCrossSigning(true);
+            break;
+          case BootstrapState.askSetupCrossSigning:
+            await b.askSetupCrossSigning(
+              setupMasterKey: true,
+              setupSelfSigningKey: true,
+              setupUserSigningKey: true,
+            );
+            break;
+          case BootstrapState.askWipeOnlineKeyBackup:
+            b.wipeOnlineKeyBackup(true);
+            break;
+          case BootstrapState.askSetupOnlineKeyBackup:
+            await b.askSetupOnlineKeyBackup(true);
+            break;
+          case BootstrapState.done:
+            print('Bootstrap fertig!');
+            break;
+          case BootstrapState.error:
+            print('Bootstrap Fehler');
+            break;
+          default:
+            break;
+        }
+      },
+    );
+  }
 }

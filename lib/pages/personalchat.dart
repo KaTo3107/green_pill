@@ -13,8 +13,6 @@ class PersonalChat extends StatefulWidget {
 }
 
 class _PersonalChatState extends State<PersonalChat> {
-  List<MessageObject> messages = [
-  ];
 
   Timeline? timeline;
   bool _isDisposed = false;
@@ -35,21 +33,24 @@ class _PersonalChatState extends State<PersonalChat> {
   }
 
   Future<void> _loadTimeline() async {
-    final matrix = context.watch<MatrixService>();
+    final matrix = context.read<MatrixService>();
 
     await matrix.client.roomsLoading;
     await matrix.client.accountDataLoading;
 
+    if(matrix.client.encryptionEnabled) {
+      print("Load keys from Room ${widget.room.id} ${widget.room.name}");
+      matrix.client.encryption?.keyManager.loadAllKeysFromRoom(widget.room.id);
+    }
+
     timeline = await widget.room.getTimeline(
       onUpdate: () {
-        // 🔧 NEU: Nur setState wenn Widget noch mounted ist
         if (!_isDisposed && mounted) {
           setState(() {});
         }
       },
     );
 
-    // Initial setState nur wenn noch mounted
     if (mounted) {
       setState(() {});
     }
@@ -66,8 +67,6 @@ class _PersonalChatState extends State<PersonalChat> {
 
   @override
   Widget build(BuildContext context) {
-    final matrixService = Provider.of<MatrixService>(context, listen: false);
-
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -83,15 +82,6 @@ class _PersonalChatState extends State<PersonalChat> {
           ],
         ),
         actions: [
-          // 🔐 NEU: Encryption Toggle Button
-          if (!widget.room.encrypted)
-            IconButton(
-              icon: const Icon(Icons.lock_outline),
-              tooltip: 'Verschlüsselung aktivieren',
-              onPressed: () async {
-                await _enableEncryption(matrixService);
-              },
-            ),
           // 🔐 NEU: Info Button
           IconButton(
             icon: const Icon(Icons.info_outline),
@@ -115,7 +105,7 @@ class _PersonalChatState extends State<PersonalChat> {
                 }
 
                 final event = timeline!.events[index];
-                final isMe = event.senderId == matrixService.client.userID;
+                final isMe = event.senderId == context.read<MatrixService>().client.userID;
 
                 String messageText = event.body;
 
@@ -272,7 +262,7 @@ class _PersonalChatState extends State<PersonalChat> {
     if (text.isEmpty) return;
 
     setState(() {
-      messages.insert(0, MessageObject(text: text, isMe: true));
+      //messages.insert(0, MessageObject(text: text, isMe: true));
     });
     _messageInputController.clear();
     _focusNode.requestFocus();

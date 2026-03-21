@@ -1,22 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:green_pill/pages/RoomAvatar.dart';
+import 'package:green_pill/service/matrix_service.dart';
+import 'package:matrix/matrix.dart';
+import 'package:provider/provider.dart';
 
 class PersonalChat extends StatefulWidget {
-  const PersonalChat({super.key});
+  const PersonalChat({super.key, required this.room});
 
+  final Room room;
   @override
   State<PersonalChat> createState() => _PersonalChatState();
 }
 
 class _PersonalChatState extends State<PersonalChat> {
   List<MessageObject> messages = [
-    MessageObject(text: 'Hey, how are you?', isMe: false),
-    MessageObject(text: 'I am good, thanks! How about you?', isMe: true),
-    MessageObject(
-      text: 'Doing well, just working on a Flutter project.',
-      isMe: false,
-    ),
-    MessageObject(text: 'That sounds great! Flutter is awesome.', isMe: true),
   ];
+
+  Timeline? timeline;
+  bool _isDisposed = false;
 
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _messageInputController = TextEditingController();
@@ -26,39 +27,77 @@ class _PersonalChatState extends State<PersonalChat> {
   void initState() {
     super.initState();
 
+    _loadTimeline();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
     });
   }
 
+  Future<void> _loadTimeline() async {
+    final matrix = context.watch<MatrixService>();
+
+    await matrix.client.roomsLoading;
+    await matrix.client.accountDataLoading;
+
+    timeline = await widget.room.getTimeline(
+      onUpdate: () {
+        // 🔧 NEU: Nur setState wenn Widget noch mounted ist
+        if (!_isDisposed && mounted) {
+          setState(() {});
+        }
+      },
+    );
+
+    // Initial setState nur wenn noch mounted
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   @override
   void dispose() {
-    super.dispose();
-
     _scrollController.dispose();
     _messageInputController.dispose();
     _focusNode.dispose();
+    super.dispose();
+    _isDisposed = true;
   }
 
   @override
   Widget build(BuildContext context) {
+    final matrixService = Provider.of<MatrixService>(context, listen: false);
+
     return Scaffold(
       appBar: AppBar(
         title: Row(
           children: [
-            const CircleAvatar(
-                    backgroundImage: NetworkImage('https://randomuser.me/api/portraits/women/68.jpg'),
-                    radius: 25,
-                  ),
+            RoomAvatar(room: widget.room, radius: 20),
             const SizedBox(width: 20),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text('Alice Smith'),
+              children: [
+                Text(widget.room.getLocalizedDisplayname(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ],
             ),
           ],
         ),
+        actions: [
+          // 🔐 NEU: Encryption Toggle Button
+          if (!widget.room.encrypted)
+            IconButton(
+              icon: const Icon(Icons.lock_outline),
+              tooltip: 'Verschlüsselung aktivieren',
+              onPressed: () async {
+                await _enableEncryption(matrixService);
+              },
+            ),
+          // 🔐 NEU: Info Button
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            onPressed: () => _showEncryptionInfo(context),
+          ),
+        ],
         centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
@@ -68,11 +107,20 @@ class _PersonalChatState extends State<PersonalChat> {
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
-              itemCount: messages.length,
+              itemCount: timeline?.events.length ?? 0,
               reverse: true,
               itemBuilder: (context, index) {
+                if(timeline == null) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final event = timeline!.events[index];
+                final isMe = event.senderId == matrixService.client.userID;
+
+                String messageText = event.body;
+
                 return Align(
-                  alignment: messages[index].isMe
+                  alignment: isMe
                       ? Alignment.centerRight
                       : Alignment.centerLeft,
                   child: Container(
@@ -82,24 +130,24 @@ class _PersonalChatState extends State<PersonalChat> {
                     ),
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: messages[index].isMe
+                      color: isMe
                           ? Theme.of(context).colorScheme.secondary
                           : Theme.of(context).colorScheme.primary,
                       borderRadius: BorderRadius.only(
                         topLeft: const Radius.circular(15),
                         topRight: const Radius.circular(15),
-                        bottomLeft: messages[index].isMe
+                        bottomLeft: isMe
                             ? const Radius.circular(15)
                             : Radius.zero,
-                        bottomRight: messages[index].isMe
+                        bottomRight: isMe
                             ? Radius.zero
                             : const Radius.circular(15),
                       ),
                     ),
                     child: Text(
-                      messages[index].text,
+                      messageText,
                       style: TextStyle(
-                        color: messages[index].isMe
+                        color: isMe
                             ? Theme.of(context).colorScheme.onSecondary
                             : Theme.of(context).colorScheme.onPrimary,
                       ),
@@ -124,7 +172,7 @@ class _PersonalChatState extends State<PersonalChat> {
                   child: TextField(
                     controller: _messageInputController,
                     decoration: InputDecoration(
-                      hintText: 'Type a message',
+                      hintText: 'Nachricht eingeben...',
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 10,
@@ -142,6 +190,77 @@ class _PersonalChatState extends State<PersonalChat> {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  // 🔐 NEU: Encryption aktivieren
+  Future<void> _enableEncryption(MatrixService matrixService) async {
+    try {
+      await matrixService.enableRoomEncryption(widget.room);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Verschlüsselung aktiviert!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        setState(() {});
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ Fehler: $e')),
+        );
+      }
+    }
+  }
+
+  // 🔐 NEU: Encryption Info Dialog
+  void _showEncryptionInfo(BuildContext context) {
+    final info = context.read<MatrixService>().getEncryptionInfo(widget.room);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.info_outline),
+            SizedBox(width: 8),
+            Text('Verschlüsselung'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildInfoRow('Status:', info['encrypted'] ? '🔒 Verschlüsselt' : '🔓 Nicht verschlüsselt'),
+            if (info['encrypted'])
+              _buildInfoRow('Algorithmus:', info['algorithm'] ?? 'N/A'),
+            _buildInfoRow('Teilnehmer:', '${info['participantCount']}'),
+            _buildInfoRow('Client Encryption:', info['encryptionEnabled'] ? 'Aktiv' : 'Inaktiv'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Schließen'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(width: 8),
+          Expanded(child: Text(value)),
         ],
       ),
     );

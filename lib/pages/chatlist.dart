@@ -51,7 +51,7 @@ class _ChatListPageState extends State<ChatListPage> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const PersonalChat())
+                  MaterialPageRoute(builder: (context) => PersonalChat(room: room))
                 );
               },
               trailing: room.notificationCount > 0

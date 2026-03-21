@@ -79,6 +79,23 @@ class SettingsPage extends StatelessWidget {
               }
             },
           ),
+          ListTile(//TODO: Verifizierungsprozess implementieren
+            title: Text('Verifizierung', style: TextStyle(color: Theme.of(context).textTheme.labelSmall?.color)),
+            subtitle: Text('Verifizieren Sie Ihre Identität', style: TextStyle(color: Theme.of(context).textTheme.labelSmall?.color)),
+            onTap: () => showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Verifizierung'),
+                content: const Text('Hier können Sie Ihre Identität verifizieren.'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('OK'),
+                  ),
+                ],
+              ),
+            ),
+          )
         ],
       ),
     );

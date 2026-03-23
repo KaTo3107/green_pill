@@ -24,7 +24,6 @@ class _PersonalChatState extends State<PersonalChat> {
   @override
   void initState() {
     super.initState();
-
     _loadTimeline();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -67,6 +66,15 @@ class _PersonalChatState extends State<PersonalChat> {
 
   @override
   Widget build(BuildContext context) {
+
+    final lastEvent = widget.room.lastEvent;
+    if (lastEvent != null) {
+      widget.room.setReadMarker(
+        lastEvent.eventId,
+        mRead: lastEvent.eventId,
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -256,14 +264,12 @@ class _PersonalChatState extends State<PersonalChat> {
     );
   }
 
-  void sendMessage(text) {
+  void sendMessage(text) async {
     text = text.trim();
     
     if (text.isEmpty) return;
 
-    setState(() {
-      //messages.insert(0, MessageObject(text: text, isMe: true));
-    });
+    widget.room.sendTextEvent(text);
     _messageInputController.clear();
     _focusNode.requestFocus();
     _scrollController.animateTo(

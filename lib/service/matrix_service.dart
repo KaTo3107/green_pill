@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_vodozemac/flutter_vodozemac.dart' as vod;
+import 'package:green_pill/pages/verificationdialog.dart';
 import 'package:matrix/encryption/utils/bootstrap.dart';
 import 'package:matrix/encryption/utils/key_verification.dart';
 import 'package:matrix/matrix.dart';
@@ -36,7 +37,11 @@ class MatrixService extends ChangeNotifier {
       nativeImplementations: NativeImplementationsIsolate(
         compute,
         vodozemacInit: () => vod.init(),
-      )
+      ),
+      verificationMethods: {
+        KeyVerificationMethod.emoji,
+        KeyVerificationMethod.numbers,
+      },
     );
 
     debugPrint('[Matrix] 🔍 Encryption vor init: ${client.encryption}');
@@ -179,5 +184,15 @@ class MatrixService extends ChangeNotifier {
         }
       },
     );
+  }
+
+  Future<KeyVerification?> startSelfVerification() async {
+    // Alle eigenen Geräte holen
+    final ownDevices = client.userDeviceKeys[client.userID];
+    if (ownDevices == null) return null;
+
+    // Verifikation gegen das eigene User-Key-Set starten
+    final request = await ownDevices.startVerification();
+    return request;
   }
 }
